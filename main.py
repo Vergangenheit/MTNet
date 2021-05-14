@@ -16,7 +16,6 @@ from tensorflow.python import debug as tf_debug
 # os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 SCORE_TYPES = [['MAE', 'RMSE'], ['CORR', 'RSE']]
 
-
 CONFIG = BJpmConfig
 DS_HANDLER = BJPMDataset
 score_type_index = 0
@@ -42,7 +41,7 @@ def make_config_string(config):
 
 
 def make_log_dir(config, ds_handler):
-    return os.path.join(LOG_DIR, ds_handler.name, 'horizon' + str(config.horizon),make_config_string(config))
+    return os.path.join(LOG_DIR, ds_handler.name, 'horizon' + str(config.horizon), make_config_string(config))
 
 
 def make_model_path(config, ds_handler):
@@ -60,23 +59,23 @@ def calc_rse(y_real_list, y_pred_list):
 
 
 def calc_corr(y_real_list, y_pred_list):
-    y_real_mean = np.mean(y_real_list, axis = 0)
-    y_pred_mean = np.mean(y_pred_list, axis = 0)
+    y_real_mean = np.mean(y_real_list, axis=0)
+    y_pred_mean = np.mean(y_pred_list, axis=0)
 
-    numerator = np.sum((y_real_list - y_real_mean) * (y_pred_list - y_pred_mean), axis = 0)
-    denominator_real = np.sqrt(np.sum((y_real_list - y_real_mean) ** 2, axis = 0))
-    denominator_pred = np.sqrt(np.sum((y_pred_list - y_pred_mean) ** 2, axis = 0))
+    numerator = np.sum((y_real_list - y_real_mean) * (y_pred_list - y_pred_mean), axis=0)
+    denominator_real = np.sqrt(np.sum((y_real_list - y_real_mean) ** 2, axis=0))
+    denominator_pred = np.sqrt(np.sum((y_pred_list - y_pred_mean) ** 2, axis=0))
     denominator = denominator_real * denominator_pred
     corr = np.mean(numerator / denominator)
 
     return corr
 
 
-def run_one_epoch(sess, model, batch_data, summary_writer, ds_handler, epoch_num, is_train = True):
+def run_one_epoch(sess, model, batch_data, summary_writer, ds_handler, epoch_num, is_train=True):
     # reset statistics variables
     sess.run(model.reset_statistics_vars)
 
-    if is_train :
+    if is_train:
         run_func = model.train
     else:
         run_func = model.predict
@@ -133,7 +132,7 @@ def run_one_epoch(sess, model, batch_data, summary_writer, ds_handler, epoch_num
         return loss, corr, rse
 
 
-def run_one_config(config):
+def run_one_config(config: ConfigType):
     epochs = 300
 
     # learning rate decay
@@ -143,7 +142,7 @@ def run_one_config(config):
 
     # build model
     with tf.Session() as sess:
-        #sess = tf_debug.LocalCLIDebugWrapperSession(sess)
+        # sess = tf_debug.LocalCLIDebugWrapperSession(sess)
         model = MTNet(config)
         saver = tf.train.Saver()
         # data process
@@ -168,11 +167,11 @@ def run_one_config(config):
         best_score = float('inf')
 
         # indicate the score name
-        score1_name, score2_name= SCORE_TYPES[score_type_index]
+        score1_name, score2_name = SCORE_TYPES[score_type_index]
 
         for i in range(epochs):
             # decay lr
-            config.lr = min_lr + (max_lr - min_lr) * math.exp(-i/decay_epochs)
+            config.lr = min_lr + (max_lr - min_lr) * math.exp(-i / decay_epochs)
 
             # train one epoch
             run_one_epoch(sess, model, train_batch_data, train_writer, ds_handler, i, True)
@@ -183,7 +182,7 @@ def run_one_config(config):
                     best_score = score2
                     # save model
                     saver.save(sess, model_path)
-                    print('Epoch', i, 'Test Loss:', loss, score1_name,':', scope1, score2_name, ':', score2)
+                    print('Epoch', i, 'Test Loss:', loss, score1_name, ':', scope1, score2_name, ':', score2)
 
         print('---------Best score:', score2_name, ':', best_score)
 
@@ -192,10 +191,10 @@ def run_one_config(config):
 
 
 if __name__ == '__main__':
-    config = CONFIG()
+    config: ConfigType = CONFIG()
     for en_conv_hidden_size in [32, 64]:
         config.en_conv_hidden_size = en_conv_hidden_size
-        for en_rnn_hidden_sizes in [ [32, 32], [32, 64]]:
+        for en_rnn_hidden_sizes in [[32, 32], [32, 64]]:
             config.en_rnn_hidden_sizes = en_rnn_hidden_sizes
 
             run_one_config(config)

@@ -1,8 +1,11 @@
 import pickle
 import numpy as np
+from numpy import ndarray
 import pandas as pd
 import h5py
+from h5py import File
 from sklearn.preprocessing import MinMaxScaler
+
 
 class Dataset(object):
     '''
@@ -23,7 +26,7 @@ class Dataset(object):
         # get scaled dataset and sacler
         self.dataset, self.scaler = self.scaling(self.raw_dataset)
 
-    def process2records(self, ds, config):
+    def process2records(self, ds, config) -> ndarray:
         '''
         :param ds: dataset <length, columns>
         :param config:
@@ -51,10 +54,10 @@ class Dataset(object):
             if start_index < 0:
                 break
 
-            batch_data = records[start_index : i, :]
+            batch_data = records[start_index: i, :]
             x = np.reshape(batch_data[:, : config.T * config.n * config.D], [-1, config.n, config.T, config.D])
-            q = np.reshape(batch_data[:, config.T * config.n * config.D : -config.D], [-1, config.T, config.D])
-            y = np.reshape(batch_data[:, -config.D :], [-1, config.D])
+            q = np.reshape(batch_data[:, config.T * config.n * config.D: -config.D], [-1, config.T, config.D])
+            y = np.reshape(batch_data[:, -config.D:], [-1, config.D])
             yield x, q, y
 
             i = start_index
@@ -81,7 +84,7 @@ class Dataset(object):
 
         return real_y
 
-    def get_all_batch_data(self, config, ds_type = 'T'):
+    def get_all_batch_data(self, config, ds_type='T'):
         is_shuffle = False
         if ds_type == 'T':
             ds = self.train_ds
@@ -104,7 +107,7 @@ class Dataset(object):
 
         return all_batch_data
 
-    def divide_ds(self, config, ratios = [0.8, 0.9]):
+    def divide_ds(self, config, ratios=[0.8, 0.9]):
         '''
 
         :param dataset: <length, D>
@@ -124,15 +127,16 @@ class Dataset(object):
             if prev_index != 0:
                 prev_index = prev_index - records_offset
 
-            ds_list.append( self.dataset[prev_index : cur_index])
+            ds_list.append(self.dataset[prev_index: cur_index])
 
             prev_index = cur_index
 
         return ds_list
 
+
 class TaxiNYDataset(Dataset):
     time_interval = 30
-    name = 'TaxiNY_%s' %  time_interval
+    name = 'TaxiNY_%s' % time_interval
     data_filename = './datasets/grid_map_dict_%smin.pickle' % time_interval
 
     def __init__(self, config):
@@ -153,10 +157,11 @@ class TaxiNYDataset(Dataset):
             grid_map_dict = pickle.load(f)
         # transform dict to grid_map list ordered by key ascending
         # sort asc
-        grid_map_list = sorted(grid_map_dict.items(), key = lambda item : item[0])
-        grid_map_list = list(map(lambda item : item[1], grid_map_list))
+        grid_map_list = sorted(grid_map_dict.items(), key=lambda item: item[0])
+        grid_map_list = list(map(lambda item: item[1], grid_map_list))
         # <lat_len * lon_len, time dim>
         return np.reshape(grid_map_list, [len(grid_map_list), -1])
+
 
 class BJPMDataset(Dataset):
     name = 'BJPM2_5'
@@ -188,13 +193,12 @@ class BJPMDataset(Dataset):
         :return: a tuple (scaled_data<same shape as input>, scalers<columns>)
         '''
         # <columns, length, 1>
-        data = np.expand_dims(data, axis = -1)
+        data = np.expand_dims(data, axis=-1)
         scalers = []
-
 
         data = data.tolist()
         for i in range(len(data)):
-            scaler = MinMaxScaler( self.SACLED_FEATURE_RANGE )
+            scaler = MinMaxScaler(self.SACLED_FEATURE_RANGE)
             data[i] = scaler.fit_transform(data[i]).tolist()
             scalers.append(scaler)
 
@@ -229,9 +233,9 @@ class BJPMDataset(Dataset):
             start_index = i - config.batch_size
             if start_index < 0:
                 break
-            batch_data = records[start_index : i, :]
+            batch_data = records[start_index: i, :]
             x = np.reshape(batch_data[:, : config.T * config.n * config.D], [-1, config.n, config.T, config.D])
-            q = np.reshape(batch_data[:, config.T * config.n * config.D : -1], [-1, config.T, config.D])
+            q = np.reshape(batch_data[:, config.T * config.n * config.D: -1], [-1, config.T, config.D])
             y = np.reshape(batch_data[:, -1], [-1, 1])
             yield x, q, y
 
@@ -248,6 +252,7 @@ class BJPMDataset(Dataset):
         real_y = y_scaler.inverse_transform(y_scaled)
 
         return np.reshape(real_y, origin_shape)
+
 
 class SolarEnergyDataset(Dataset):
     name = 'SolarEnergy_2006'
@@ -273,6 +278,7 @@ class SolarEnergyDataset(Dataset):
         # <length, columns>
         return data
 
+
 class BikeNYCDataset(Dataset):
     name = 'BikeNYC'
     data_filename = './datasets/NYC14_M16x8_T60_NewEnd.h5'
@@ -284,13 +290,12 @@ class BikeNYCDataset(Dataset):
         print('-Train dataset shape:', self.train_ds.shape)
         print('-Valid dataset shape:', self.valid_ds.shape)
 
-    def get_dataset(self):
+    def get_dataset(self) -> ndarray:
         '''
         Get dataset <length, D>
         :return: <length, D>
         '''
-        f = h5py.File(self.data_filename)
-        data = np.reshape(f['data'], [f['data'].shape[0], -1])
+        f: File = h5py.File(self.data_filename)
+        data: ndarray = np.reshape(f['data'], [f['data'].shape[0], -1])
 
         return data
-

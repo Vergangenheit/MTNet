@@ -12,7 +12,8 @@ class MTNet:
             lr = tf.placeholder(tf.float32)
             input_keep_prob = tf.placeholder(tf.float32)
             output_keep_prob = tf.placeholder(tf.float32)
-
+            self.input_keep_prob = input_keep_prob
+            self.output_keep_prob = output_keep_prob
             # ------- no-linear component----------------
             last_rnn_hid_size = self.config.en_rnn_hidden_sizes[-1]
             # <batch_size, n, en_rnn_hidden_sizes>
@@ -89,8 +90,8 @@ class MTNet:
         self.X = X
         self.Q = Q
         self.Y = Y
-        self.input_keep_prob = input_keep_prob
-        self.output_keep_prob = output_keep_prob
+        # self.input_keep_prob = input_keep_prob
+        # self.output_keep_prob = output_keep_prob
         self.lr = lr
         self.y_pred = y_pred
         self.loss = loss
@@ -117,8 +118,9 @@ class MTNet:
         last_rnn_hidden_size = self.config.en_rnn_hidden_sizes[-1]
 
         # reshape input_x : <batch_size * n, T, D, 1>
+        print(f"Initial input size is {origin_input_x.get_shape}")
         input_x = tf.reshape(origin_input_x, shape=[-1, self.config.T, self.config.D, 1])
-
+        print(f"reshaped input size X is {input_x.get_shape}")
         with tf.variable_scope(scope, reuse=tf.AUTO_REUSE):
             # cnn parameters
             with tf.variable_scope('CNN', reuse=tf.AUTO_REUSE):
@@ -129,7 +131,9 @@ class MTNet:
                                           initializer=tf.constant_initializer(0.1))
 
                 # <batch_size_new, Tc, 1, en_conv_hidden_size>
+                x_conved = tf.nn.conv2d(input_x, w_conv1, strides, padding=padding)
                 h_conv1 = activation_func(tf.nn.conv2d(input_x, w_conv1, strides, padding=padding) + b_conv1)
+                print(f"Input after convolution has shape {x_conved.shape}")
                 if self.config.input_keep_prob < 1:
                     h_conv1 = tf.nn.dropout(h_conv1, self.output_keep_prob)
 
