@@ -9,7 +9,7 @@ import os
 
 import numpy as np
 from numpy import ndarray
-from typing import Union, List
+from typing import Union, List, Generator
 import tensorflow as tf
 from tensorflow.python import debug as tf_debug
 
@@ -73,7 +73,7 @@ def calc_corr(y_real_list: Union[ndarray, List], y_pred_list: Union[ndarray, Lis
     return corr
 
 
-def run_one_epoch(sess, model, batch_data, summary_writer, ds_handler, epoch_num, is_train=True):
+def run_one_epoch(sess: tf.Session, model: MTNet, batch_data: Generator, summary_writer: tf.summary.FileWriter, ds_handler: Dataset, epoch_num: int, is_train: bool =True):
     # reset statistics variables
     sess.run(model.reset_statistics_vars)
 
@@ -149,7 +149,7 @@ def run_one_config(config: ConfigType, args: Namespace):
     config_proto = tf.ConfigProto(gpu_options=gpu_options)
     with tf.Session(config=config_proto) as sess:
         # sess = tf_debug.LocalCLIDebugWrapperSession(sess)
-        model = MTNet(config)
+        model = MTNet(config, device_name)
         saver = tf.train.Saver()
         # data process
         ds_handler = DS_HANDLER(config)
