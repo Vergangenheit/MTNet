@@ -15,7 +15,7 @@ from tensorflow.python import debug as tf_debug
 
 # GPU setting
 # os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 SCORE_TYPES = [['MAE', 'RMSE'], ['CORR', 'RSE']]
 
 CONFIG = BJpmConfig
@@ -197,7 +197,7 @@ def run_one_config(config: ConfigType, args: Namespace):
 
 if __name__ == '__main__':
     parser = ArgumentParser()
-    parser.add_argument("--gpu", type=bool, default=True, help="whether to run training with gpu or not")
+    parser.add_argument("--gpu", type=bool, default=False, help="whether to run training with gpu or not")
     args: Namespace = parser.parse_args()
     config: ConfigType = CONFIG()
     for en_conv_hidden_size in [32, 64]:
