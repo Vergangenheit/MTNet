@@ -32,7 +32,7 @@ def get_num_params():
     num_params = 0
     for variable in tf.trainable_variables():
         shape = variable.get_shape()
-        num_params += reduce(mul, [dim.value for dim in shape], 1)
+        num_params += reduce(mul, [dim for dim in shape], 1)
     return num_params
 
 
