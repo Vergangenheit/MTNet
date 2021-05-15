@@ -5,6 +5,7 @@ import pandas as pd
 import h5py
 from h5py import File
 from sklearn.preprocessing import MinMaxScaler
+import os
 
 
 class Dataset(object):
@@ -299,3 +300,6 @@ class BikeNYCDataset(Dataset):
         data: ndarray = np.reshape(f['data'], [f['data'].shape[0], -1])
 
         return data
+
+
+print(os.path.abspath(os.path.join(os.getcwd(), os.pardir)))

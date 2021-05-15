@@ -1,19 +1,21 @@
 from models.MTNet import *
 from configs.config import *
 from preprocess.get_data import *
-
+from argparse import ArgumentParser,Namespace
 from functools import reduce
 from operator import mul
 import math
 import os
 
 import numpy as np
+from numpy import ndarray
+from typing import Union, List
 import tensorflow as tf
 from tensorflow.python import debug as tf_debug
 
 # GPU setting
 # os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
-# os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 SCORE_TYPES = [['MAE', 'RMSE'], ['CORR', 'RSE']]
 
 CONFIG = BJpmConfig
@@ -24,7 +26,7 @@ is_train = True
 
 MODEL_DIR = os.path.join('logs', 'checkpoints')
 LOG_DIR = os.path.join('logs', 'graphs')
-
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.7)
 
 def get_num_params():
     num_params = 0
@@ -51,22 +53,22 @@ def make_model_path(config, ds_handler):
     return os.path.join(dir, make_config_string(config), 'mtnet.ckpt')
 
 
-def calc_rse(y_real_list, y_pred_list):
-    rse_numerator = np.sum(np.subtract(y_pred_list, y_real_list) ** 2)
-    rse_denominator = np.sum(np.subtract(y_real_list, np.mean(y_real_list)) ** 2)
-    rse = np.sqrt(np.divide(rse_numerator, rse_denominator))
+def calc_rse(y_real_list: Union[List, ndarray], y_pred_list: Union[List, ndarray]) -> ndarray:
+    rse_numerator: Union[float, ndarray] = np.sum(np.subtract(y_pred_list, y_real_list) ** 2)
+    rse_denominator: Union[float, ndarray] = np.sum(np.subtract(y_real_list, np.mean(y_real_list)) ** 2)
+    rse: ndarray = np.sqrt(np.divide(rse_numerator, rse_denominator))
     return rse
 
 
-def calc_corr(y_real_list, y_pred_list):
-    y_real_mean = np.mean(y_real_list, axis=0)
-    y_pred_mean = np.mean(y_pred_list, axis=0)
+def calc_corr(y_real_list: Union[ndarray, List], y_pred_list: Union[ndarray, List]) -> ndarray:
+    y_real_mean: ndarray = np.mean(y_real_list, axis=0)
+    y_pred_mean: ndarray = np.mean(y_pred_list, axis=0)
 
-    numerator = np.sum((y_real_list - y_real_mean) * (y_pred_list - y_pred_mean), axis=0)
-    denominator_real = np.sqrt(np.sum((y_real_list - y_real_mean) ** 2, axis=0))
-    denominator_pred = np.sqrt(np.sum((y_pred_list - y_pred_mean) ** 2, axis=0))
-    denominator = denominator_real * denominator_pred
-    corr = np.mean(numerator / denominator)
+    numerator: ndarray = np.sum((y_real_list - y_real_mean) * (y_pred_list - y_pred_mean), axis=0)
+    denominator_real: ndarray = np.sqrt(np.sum((y_real_list - y_real_mean) ** 2, axis=0))
+    denominator_pred: ndarray = np.sqrt(np.sum((y_pred_list - y_pred_mean) ** 2, axis=0))
+    denominator: ndarray = denominator_real * denominator_pred
+    corr: ndarray = np.mean(numerator / denominator)
 
     return corr
 
@@ -132,16 +134,20 @@ def run_one_epoch(sess, model, batch_data, summary_writer, ds_handler, epoch_num
         return loss, corr, rse
 
 
-def run_one_config(config: ConfigType):
+def run_one_config(config: ConfigType, args: Namespace):
     epochs = 300
 
     # learning rate decay
     max_lr = 0.003
     min_lr = 0.0001
     decay_epochs = 60
-
+    if args.gpu:
+        device_name: str = "/gpu:0"
+    else:
+        device_name: str = "/cpu:0"
     # build model
-    with tf.Session() as sess:
+    config_proto = tf.ConfigProto(gpu_options=gpu_options)
+    with tf.Session(config=config_proto) as sess:
         # sess = tf_debug.LocalCLIDebugWrapperSession(sess)
         model = MTNet(config)
         saver = tf.train.Saver()
@@ -165,7 +171,6 @@ def run_one_config(config: ConfigType):
         sess.run(tf.global_variables_initializer())
 
         best_score = float('inf')
-
         # indicate the score name
         score1_name, score2_name = SCORE_TYPES[score_type_index]
 
@@ -191,10 +196,13 @@ def run_one_config(config: ConfigType):
 
 
 if __name__ == '__main__':
+    parser = ArgumentParser()
+    parser.add_argument("--gpu", type=bool, default=True, help="whether to run training with gpu or not")
+    args: Namespace = parser.parse_args()
     config: ConfigType = CONFIG()
     for en_conv_hidden_size in [32, 64]:
         config.en_conv_hidden_size = en_conv_hidden_size
         for en_rnn_hidden_sizes in [[32, 32], [32, 64]]:
             config.en_rnn_hidden_sizes = en_rnn_hidden_sizes
 
-            run_one_config(config)
+            run_one_config(config, args)
