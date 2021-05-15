@@ -10,7 +10,7 @@ import os
 import numpy as np
 from numpy import ndarray
 from typing import Union, List, Generator
-import tensorflow as tf
+import tensorflow.compat.v1 as tf
 from tensorflow.python import debug as tf_debug
 
 # GPU setting
